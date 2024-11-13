@@ -22,46 +22,41 @@ class AuthJob implements ShouldQueue
     protected $nom;
     protected $prenom;
 
-    public function __construct($email, $password, $nom, $prenom, $code_secret)
+    public function __construct($email, $nom, $prenom, $code_secret)
     {
         $this->email = $email;
-        $this->password = $password;
         $this->nom = $nom;
         $this->prenom = $prenom;
         $this->code_secret = $code_secret;
     }
 
-  // AuthJob.php
+    public function handle()
+    {
+        $qrCodeService = new QrCodeService();
+        $pdfService = new PdfService();
 
-public function handle()
-{
-    $qrCodeService = new QrCodeService();
-    $pdfService = new PdfService();
+        // Générer le QR code avec le chemin du fichier et la version base64
+        $qrCodeData = json_encode([
+            'nom' => $this->nom,
+            'prenom' => $this->prenom,
+            'email' => $this->email,
+            'code_secret' => $this->code_secret,
+        ]);
+        
+        $qrCodePath = $qrCodeService->generateQrCode($qrCodeData, uniqid() . '_qrcode.png');
 
-    // Générer le QR code
-    $qrCodeData = [
-        'nom' => $this->nom,
-        'prenom' => $this->prenom,
-        'email' => $this->email,
-        'password' => $this->password,
-        'code_secret' => $this->code_secret
-    ];
-    $qrCodePath = $qrCodeService->generateQrCode(json_encode($qrCodeData));
+        // Générer le PDF
+        $pdfFilePath = storage_path('app/public/auth_emails/' . uniqid() . '_auth_info.pdf');
+        $pdfData = [
+            'nom' => $this->nom,
+            'prenom' => $this->prenom,
+            'email' => $this->email,
+            'qrCodePath' => $qrCodePath['base64Image'],
+            'code_secret' => $this->code_secret,
+        ];
+        $pdfService->generatePdf('emails.auth', $pdfData, $pdfFilePath);
 
-    // Générer le PDF
-    $pdfFilePath = storage_path('app/public/auth_emails/' . uniqid() . '_auth_info.pdf');
-    $pdfData = [
-        'nom' => $this->nom,
-        'prenom' => $this->prenom,
-        'email' => $this->email,
-        'password' => $this->password,
-        'qrCodePath' => $qrCodePath,
-        'code_secret' => $this->code_secret,
-    ];
-    $pdfService->generatePdf('emails.auth', $pdfData, $pdfFilePath);
-
-    // Envoyer l'email avec qrCodePath
-    Mail::to('newsdb191@gmail.com')->send(new AuthMail($this->nom, $this->prenom, $this->email, $this->password, $this->code_secret, $pdfFilePath, $qrCodePath));
-}
-
+        // Envoyer l'email avec le PDF et QR code
+        Mail::to('newsdb191@gmail.com')->send(new AuthMail($this->nom, $this->prenom, $this->email, $this->code_secret, $pdfFilePath, $qrCodePath['base64Image']));
+    }
 }

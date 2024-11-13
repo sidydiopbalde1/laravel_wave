@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Services\TransactionServiceImpl;
 use Illuminate\Http\Request;
 use App\Http\Requests\TransferRequest;
+use App\Jobs\TransferPlanifieJob;
+use App\Models\Transactions;
 class TransactionController extends Controller
 {
     protected $transactionService;
@@ -21,19 +23,22 @@ class TransactionController extends Controller
     {
         $data = $request->validate(
             [
-               'sender_id' => 'required|exists:users,id',
-               'receiver_ids' => 'required|array',
+               'telephones' => 'required|array',
                'montant' => 'required|numeric'
             ]
         );
         $result = $this->transactionService->transferMultiple(
-            $data['sender_id'],
-            $data['receiver_ids'],
+            $data['telephones'],
             $data['montant']
         );
         
         // dd($data);
-        return response()->json($result);
+        return response()->json(
+            ["success" =>true,
+            "message" => "Transfert multiple effectué avec succès",
+            "data" => $result
+            ]
+        );
     }
 
     /**
@@ -88,16 +93,25 @@ class TransactionController extends Controller
 
     public function getTransferHistory()
     {
-        $userId = request('user_id');
+        // Récupérer l'ID de l'utilisateur connecté avec Passport
+        $userId = auth()->id();
         // dd($userId);
+        // Vérifier si l'utilisateur est connecté
+        if (!$userId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Utilisateur non connecté',
+            ], 401);
+        }
+    
         $transactions = $this->transactionService->getTransferHistory($userId);
-
-        return response()->json(
-            [
+    
+        return response()->json([
             'success' => true,
             'transactions' => $transactions,
         ]);
     }
+    
 
     /**
      * Effectuer un transfert planifié.
@@ -124,7 +138,38 @@ class TransactionController extends Controller
 
         return response()->json($result);
     }
-
+    public function createScheduledTransfer(Request $request)
+    {
+        $frequency = $request->input('frequency');
+        
+        // Créer la transaction initiale
+        $transaction = Transactions::create([
+            'sender_id' => $request->sender_id,
+            'receiver_id' => $request->receiver_id,
+            'montant' => $request->montant,
+            'status' => 'planifie',
+        ]);
+    
+        // Planifier le job récurrent en fonction de la fréquence
+        switch ($frequency) {
+            case 'daily':
+                TransferPlanifieJob::dispatch($transaction->id)->delay(now()->addDay());
+                break;
+    
+            case 'weekly':
+                TransferPlanifieJob::dispatch($transaction->id)->delay(now()->addWeek());
+                break;
+    
+            case 'monthly':
+                TransferPlanifieJob::dispatch($transaction->id)->delay(now()->addMonth());
+                break;
+    
+            default:
+                return response()->json(['error' => 'Fréquence non valide.'], 400);
+        }
+    
+        return response()->json(['message' => 'Transfert planifié avec succès pour une fréquence ' . $frequency]);
+    }
 
 }
 

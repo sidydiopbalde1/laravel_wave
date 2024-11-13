@@ -14,17 +14,15 @@ class AuthMail extends Mailable
     protected $nom;
     protected $prenom;
     protected $email;
-    protected $password;
     protected $code_secret;
     protected $pdfFilePath;
     protected $qrCodePath;
 
-    public function __construct($nom, $prenom, $email, $password, $code_secret, $pdfFilePath, $qrCodePath)
+    public function __construct($nom, $prenom, $email, $code_secret, $pdfFilePath, $qrCodePath)
     {
         $this->nom = $nom;
         $this->prenom = $prenom;
         $this->email = $email;
-        $this->password = $password;
         $this->code_secret = $code_secret;
         $this->pdfFilePath = $pdfFilePath;
         $this->qrCodePath = $qrCodePath;
@@ -42,7 +40,6 @@ class AuthMail extends Mailable
                 'nom' => $this->nom,
                 'prenom' => $this->prenom,
                 'email' => $this->email,
-                'password' => $this->password,
                 'code_secret' => $this->code_secret,
                 'qrCodePath' => $this->qrCodePath, // Ajoutez qrCodePath ici
             ]);

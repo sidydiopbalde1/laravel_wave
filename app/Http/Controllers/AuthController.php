@@ -3,6 +3,8 @@ namespace App\Http\Controllers;
 
 use App\Services\AuthentificationPassport;
 use Illuminate\Http\Request;
+use Illuminate\Log\Logger;
+use Illuminate\Support\Facades\Log;
 
 class AuthController extends Controller
 {
@@ -10,17 +12,15 @@ class AuthController extends Controller
 
     public function __construct(AuthentificationPassport $authpassport)
     {
-        // Utiliser la factory pour obtenir le service d'authentification approprié
         $this->authService = $authpassport;
     }
 
     public function login(Request $request)
     {
         $credentials = $request->only('telephone', 'password');
-        // dd($credentials);    
-        // Appeler la méthode authenticate() du service sélectionné
-        $result = $this->authService->authenticate($credentials);
+        // Log::info($credentials);
 
+        $result = $this->authService->authenticate($credentials);
         return response()->json($result);
     }
 
@@ -33,36 +33,3 @@ class AuthController extends Controller
     }
 }
 
-// namespace App\Http\Controllers;
-// use App\Models\User;
-// use App\Services\AuthenticationServiceInterface;
-// use App\Services\AuthentificationServiceInterface;
-// use Illuminate\Http\Request;
-
-// class AuthController extends Controller
-// {
-//     protected $authService;
-
-//     public function __construct(AuthentificationServiceInterface $authService)
-//     {
-//         $this->authService = $authService;
-//     }
-
-//     public function login(Request $request)
-//     {
-//         $credentials = $request->only('email', 'password');
-//         $token = $this->authService->authenticate($credentials);
-
-//         if ($token) {
-//             return response()->json(['token' => $token], 200);
-//         }
-
-//         return response()->json(['error' => 'Unauthorized'], 401);
-//     }
-  
-//     public function logout()
-//     {
-//         $this->authService->logout();
-//         return response()->json(['message' => 'Successfully logged out'], 200);
-//     }
-// }

@@ -1,0 +1,197 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "API Documentation",
+    "version": "1.0.0",
+    "description": "Documentation de l'API de l'application."
+  },
+  "paths": {
+    "/api/user": {
+      "post": {
+        "summary": "Créer un utilisateur",
+        "tags": ["User"],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "nom": { "type": "string", "description": "Nom de l'utilisateur" },
+                  "prenom": { "type": "string", "description": "Prénom de l'utilisateur" },
+                  "email": { "type": "string", "format": "email", "description": "Adresse email de l'utilisateur" },
+                  "password": { "type": "string", "format": "password", "description": "Mot de passe de l'utilisateur" },
+                  "code_secret": { "type": "string", "description": "Code secret de l'utilisateur" },
+                  "telephone": { "type": "string", "description": "Numéro de téléphone de l'utilisateur" },
+                  "solde": { "type": "number", "format": "float", "default": 0, "description": "Solde initial de l'utilisateur" },
+                  "photo": { "type": "string", "format": "binary", "description": "Photo de profil de l'utilisateur" },
+                  "plafond": { "type": "number", "format": "float", "default": 100000, "description": "Plafond de transactions de l'utilisateur" },
+                  "role_id": { "type": "integer", "default": 1, "description": "ID du rôle de l'utilisateur" }
+                },
+                "required": ["nom", "prenom", "email", "password", "code_secret", "telephone"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Utilisateur créé avec succès" },
+          "400": { "description": "Erreur de validation des données" }
+        }
+      }
+    },
+    "/api/user/login": {
+      "post": {
+        "summary": "Connexion de l'utilisateur",
+        "tags": ["Auth"],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "telephone": { "type": "string", "format": "telephone", "description": "telephone de l'utilisateur" },
+                  "password": { "type": "string", "format": "password", "description": "Mot de passe de l'utilisateur" }
+                },
+                "required": ["telephone", "password"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Connexion réussie, token d'authentification retourné" },
+          "401": { "description": "Échec de l'authentification" }
+        }
+      }
+    },
+    "/api/transaction/transfert/multiple": {
+      "post": {
+        "summary": "Transfert multiple de fonds",
+        "tags": ["Transaction"],
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "montant": { "type": "number", "format": "float", "description": "Montant du transfert" },
+                  "destinataires": {
+                    "type": "array",
+                    "items": { "type": "string", "description": "Numéros de téléphone des destinataires" }
+                  }
+                },
+                "required": ["montant", "destinataires"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Transfert multiple effectué avec succès" },
+          "400": { "description": "Erreur de validation des données ou solde insuffisant" }
+        }
+      }
+    },
+    "/api/transaction/transfert/simple": {
+      "post": {
+        "summary": "Transfert simple de fonds",
+        "tags": ["Transaction"],
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "montant": { "type": "number", "format": "float", "description": "Montant du transfert" },
+                  "destinataire": { "type": "string", "description": "Numéro de téléphone du destinataire" }
+                },
+                "required": ["montant", "destinataire"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Transfert simple effectué avec succès" },
+          "400": { "description": "Erreur de validation des données ou solde insuffisant" }
+        }
+      }
+    },
+    "/api/transaction/transfert/planifie": {
+      "post": {
+        "summary": "Transfert planifié de fonds",
+        "tags": ["Transaction"],
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "montant": { "type": "number", "format": "float", "description": "Montant du transfert" },
+                  "destinataire": { "type": "string", "description": "Numéro de téléphone du destinataire" },
+                  "date_execution": { "type": "string", "format": "date", "description": "Date d'exécution du transfert" }
+                },
+                "required": ["montant", "destinataire", "date_execution"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Transfert planifié avec succès" },
+          "400": { "description": "Erreur de validation des données ou solde insuffisant" }
+        }
+      }
+    },
+    "/api/transaction/transfert/cancel": {
+      "post": {
+        "summary": "Annuler un transfert",
+        "tags": ["Transaction"],
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "transaction_id": { "type": "integer", "description": "ID de la transaction à annuler" }
+                },
+                "required": ["transaction_id"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Transaction annulée avec succès" },
+          "404": { "description": "Transaction non trouvée" }
+        }
+      }
+    },
+    "/api/transaction/transfert/historique": {
+      "get": {
+        "summary": "Obtenir l'historique des transferts",
+        "tags": ["Transaction"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "default": 1 },
+            "description": "Numéro de page pour la pagination"
+          }
+        ],
+        "responses": {
+          "200": { "description": "Liste des transferts avec pagination" }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  }
+}

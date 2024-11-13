@@ -33,38 +33,40 @@ class TransferPlanifieJob implements ShouldQueue
      * @return void
      */
     public function handle()
-    {
-        // Trouver la transaction planifiée par son ID
-        $transaction = Transactions::find($this->transactionId);
+{
+    $transaction = Transactions::find($this->transactionId);
 
-        if (!$transaction || $transaction->status !== 'planifie') {
-            return;
-        }
-
-        $sender = $transaction->sender;
-        $receiver = User::find($transaction->receiver_id);
-        $montant = $transaction->montant;
-        $frais = $montant * 0.01;
-        $totalWithFrais = $montant + $frais;
-
-        // Vérifier si l'expéditeur a un solde suffisant
-        if ($sender->solde >= $totalWithFrais) {
-            // Débiter le montant du solde de l'expéditeur et créditer le récepteur
-            $sender->solde -= $totalWithFrais;
-            $sender->save();
-
-            $receiver->solde += $montant;
-            $receiver->save();
-
-            // Marquer la transaction comme terminée
-            $transaction->status = 'completed';
-            $transaction->date = Carbon::now();
-            $transaction->frais = $frais;
-            $transaction->save();
-        } else {
-            // Si le solde est insuffisant, marquer la transaction comme échouée
-            $transaction->status = 'failed';
-            $transaction->save();
-        }
+    if (!$transaction || $transaction->status !== 'planifie') {
+        return;
     }
+
+    // Vérifiez que la date actuelle correspond à la date prévue
+    if (Carbon::now()->lessThan($transaction->scheduled_date)) {
+        return;
+    }
+
+    $sender = $transaction->sender;
+    $receiver = User::find($transaction->receiver_id);
+    $montant = $transaction->montant;
+    $frais = $montant * 0.01;
+    $totalWithFrais = $montant + $frais;
+
+    if ($sender->solde >= $totalWithFrais) {
+        $sender->solde -= $totalWithFrais;
+        $sender->save();
+
+        $receiver->solde += $montant;
+        $receiver->save();
+
+        $transaction->status = 'completed';
+        $transaction->date = Carbon::now();
+        $transaction->frais = $frais;
+        $transaction->save();
+    } else {
+        $transaction->status = 'failed';
+        $transaction->save();
+    }
+}
+
+    
 }

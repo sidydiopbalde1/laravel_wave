@@ -18,55 +18,62 @@ class TransactionServiceImpl implements TransactionServiceInterface
     /**
      * Effectuer un transfert multiple.
      */
-    public function transferMultiple($senderId, $receiverIds, $montant)
+    public function transferMultiple($telephones, $montant)
     {
+        $senderId = auth()->id();
         $sender = User::find($senderId);
-        // dd($sender);
+    
         $transactions = [
             'success' => [],
             'failed' => [],
         ];
     
-        foreach ($receiverIds as $receiverId) {
+        foreach ($telephones as $telephone) {
             $frais = $montant * 0.01;
             $totalWithFrais = $montant + $frais;
     
             // Vérifier si le solde est suffisant pour cette transaction
             if ($sender->solde >= $totalWithFrais) {
-                $receiver = User::find($receiverId);
+                $receiver = User::where('telephone', $telephone)->first();
     
-                // Créer la transaction
-                $transaction = $this->transactionRepository->create([
-                    'montant' => $montant,
-                    'status' => 'completed',
-                    'date' => Carbon::now(),
-                    'frais' => $frais,
-                    'type' => 'transfert',
-                    'sender_id' => $senderId,
-                    'receiver_id' => $receiverId,
-                ]);
+                if ($receiver) {
+                    // Créer la transaction
+                    $transaction = $this->transactionRepository->create([
+                        'montant' => $montant,
+                        'status' => 'completed',
+                        'date' => Carbon::now(),
+                        'frais' => $frais,
+                        'type' => 'transfert',
+                        'sender_id' => $senderId,
+                        'receiver_id' => $receiver->id,
+                    ]);
     
-                // Mettre à jour le solde de l'expéditeur
-                $this->transactionRepository->updateSenderBalance($transaction, $sender);
-                // Mettre à jour le solde du destinataire
-                $this->transactionRepository->updateReceiverBalance($transaction, $receiver);
+                    // Mettre à jour le solde de l'expéditeur
+                    $this->transactionRepository->updateSenderBalance($transaction, $sender);
     
-                $transactions['success'][] = $transaction;
-            } else {    
-                // Ajouter la transaction échouée
+                    // Mettre à jour le solde du destinataire
+                    $this->transactionRepository->updateReceiverBalance($transaction, $receiver);
+    
+                    $transactions['success'][] = $transaction;
+                } else {
+                    // Si le destinataire n'existe pas
+                    $transactions['failed'][] = [
+                        'telephone' => $telephone,
+                        'montant' => $montant,
+                        'message' => 'Utilisateur avec ce téléphone non trouvé',
+                    ];
+                }
+            } else {
+                // Ajouter la transaction échouée si le solde est insuffisant
                 $transactions['failed'][] = [
-                    'receiver_id' => $receiverId,
+                    'telephone' => $telephone,
                     'montant' => $montant,
                     'message' => 'Solde insuffisant pour cette transaction',
                 ];
-                // break; 
             }
         }
     
-        return [
-            'success' => true,
-            'transactions' => $transactions,
-        ];
+        return $transactions;
     }
 
     public function cancelTransaction($transactionId)

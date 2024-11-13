@@ -18,6 +18,9 @@ class Transactions extends Model
         'status',
         'id',
         "receiver_id",
+        "user_id",
+        "schedule_date",
+        "receiver_phones"
     ];
 
         public function sender()

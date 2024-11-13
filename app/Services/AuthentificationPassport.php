@@ -39,7 +39,8 @@ class AuthentificationPassport implements AuthentificationServiceInterface
             return [
                 'success' => true,
                 'user' => $user,
-                'token' => $token
+                'token' => $token,
+                "statusCode"=> 200
             ];
         } else {
             // Si l'authentification échoue

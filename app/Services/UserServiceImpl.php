@@ -25,12 +25,22 @@ class UserServiceImpl implements UserServiceInterface
         // Envoi des informations d'authentification par email
         AuthJob::dispatch(
             $user->email,
-            $data['password'],
             $user->nom,
             $user->prenom,
             $data['code_secret']
         );
 
         return $user;
+    }
+
+    //get info users connected
+    public function getConnectedUsers(){
+        $id= auth()->id();
+        // dd($id);
+        return $this->userRepository->getConnectedUsers($id);
+    }
+
+    public function getUsers(){
+        return $this->userRepository->getAll();
     }
 }
